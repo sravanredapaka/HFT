@@ -1,0 +1,224 @@
+## The Limit Order Book
+
+The *limit order book* is the list of orders (prices at which you can transact) for a given security.
+
+-  Depending on the security, these orders may be on one exchange, or aggregated across many exchanges.
+
+-  This presentation will give a basic description of the order book, and how your transactions will be handled by (and how they will affect) the book.
+
+-  You will transact in an order book if you trade stock, futures, options, and/or other securities.  However, in this presentation we'll use stock examples.  
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div> 
+
+```{r messsage=FALSE, warning=FALSE, echo = FALSE}
+#{{{
+shinyUI(fluidPage(
+    fluidRow(
+        column(6, 
+               renderPrint({
+                   library(orderbook)
+                   library(shiny)
+                   filename <- system.file("extdata",
+                                           "sample.txt",
+                                           package = "orderbook")
+                   ob <- orderbook(file = filename)
+                   ob <- read.orders(ob, 10000)
+		   display(ob)
+                   ob <<- ob
+               })
+               ),
+        column(6,
+               renderPlot({
+                   plot(ob)
+               })
+               )
+    )
+)
+)
+#}}}
+```
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div>
+
+## Inside Quotes
+
+The *inside quotes*, which are also known as the *Best Bid and Offer* or *BBO*, are the highest bid, and lowest ask, in the order book.  
+
+- They are the prices at which the next market buy (with the best offer) or market sell (with the best bid) will transact.
+
+- In the above book the *inside quotes* are 11.36/11.38.  
+
+In this case the bid/ask spread is \$11.36 - \$11.38 = \$0.02, or $\frac{\$0.02}{\$11.38} = 0.1757\%$.
+
+-  The bid/ask percentage spread measures the cost to transact in that security---the larger the spread, the larger the transaction costs.  
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div> 
+
+## The Order Book and Liquidity
+
+The smaller the bid/ask spread, and the more limit orders in the book, the greater the security's *liquidity*.  
+
+-  *Liquidity* is a measure of your ability to cheaply transact (buy or sell) a security without moving the inside quotes by much.  
+
+-  Sufficient liquidity is an integral component of a well-functioning market.  
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div> 
+
+## The Market Maker
+
+A *market maker's* job is to maintain, at all times, bids and offers in the order book.  This provides liquidity to the market.  
+
+-  The [market maker](https://www.sec.gov/answers/mktmaker.htm) attempts to earn the bid/ask spread -- repeatedly buying at the bid and selling at the ask.
+
+-  The order book is comprised of the market maker's limit orders, as well as limit orders entered by other investors and traders.  However, the market maker **must** maintain orders in the book, and other market participants do not have this requirement.
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div>
+
+## Entering a Market Order
+
+If you want to buy or sell a stock, one type of order you can enter is a *market order*.  This will buy or sell the stock at the best available price in the market at the time the order arrives.  With a market order, you are guaranteed that you will buy or sell; however, you are not sure of the price at which you will trade.
+
+-  A market buy will buy at the lowest ask price.  If it buys all available shares at the lowest ask, the next ask above will become the new lowest ask, and that is where additional shares will be bought.
+
+-  A market sell will sell at the highest bid price.  Similarly, if it sells all available shares at the highest bid, the next bid below will become the new highest bid, and that is where additional shares will be sold.
+
+Use the app in the next slide to enter market orders and see the effect on the limit order book.  On the left is the original book, and the right shows the book after the order is executed. 
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div>
+
+##
+
+```{r messsage=FALSE, warning=FALSE, echo = FALSE}
+#{{{
+shinyUI(fluidPage(
+    
+    fluidRow(
+        column(6, numericInput("amount2", "Number of Shares", value = 100)),
+        column(6, radioButtons("typeBS2", "Buy or Sell", choices = c("Buy" = 1,
+                                                      "Sell" = 2), selected = 1))
+    ),
+    
+     
+    fluidRow(
+        column(5, offset = 1,
+               renderPrint({
+                   filename <- system.file("extdata",
+                                           "sample.txt",
+                                           package = "orderbook")
+                   ob <- orderbook(file = filename)
+                   ob <- read.orders(ob, 10000)
+                   display(ob)
+               })
+               ),
+        column(5, offset = 1,
+               renderPrint({
+                   if (input$amount2 <= 0) {
+                       cat("Enter number of shares")
+                   } else {
+                     orderType <- switch(input$typeBS2, 
+                                         "1" = "BUY",
+                                         "2" = "SELL")
+                     filename <- system.file("extdata",
+                                             "sample.txt",
+                                             package = "orderbook")
+                     ob <- orderbook(file = filename)
+                     ob <- read.orders(ob, 10000)
+                     ob <- market.order(ob, input$amount2, orderType)
+                     display(ob)
+                   }
+               })
+               ))
+      )
+    )
+#}}}
+```
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div> 
+
+## Entering a Limit Order
+
+You can also buy or sell stock with a *limit order*.  In this type of order, you specify the highest/lowest price at which you will buy/sell.  With a limit order, you are guaranteed the price at which you will buy or sell (if the trade is executed); however, you are not guaranteed that you will actually trade.
+
+-  Say you enter a limit order to buy shares at \$50.03. Your order will sit in the limit order book until a sell order executes against your trade at \$50.03.  
+
+- Similarly, a limit sell will sit in the book until a buy order executes against your sell.   
+
+What if I enter a limit order to buy at \$50.03 and the present ask is \$50.01?  Your broker will likely warn you, but if you enter the order it will immediately trigger, turn into a market order, and execute at \$50.01. A limit buy simply specifies the highest price at which you will trade -- you will always get the best available price when transacting.
+
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div>
+
+##
+
+```{r messsage=FALSE, warning=FALSE, echo = FALSE}
+#{{{
+shinyUI(fluidPage(
+    
+  fluidRow(
+    column(4, numericInput("amount3", "Number of Shares", value = 100)),
+    column(4, numericInput("limit3", "Limit Price", value = 11.36)),
+    column(4, radioButtons("typeBS3", "Buy or Sell", choices = c("Buy" = 1,
+                                                      "Sell" = 2), selected = 1))),
+  
+  fluidRow(
+      column(5, offset = 1,
+             renderPrint({
+                 filename <- system.file("extdata",
+                                         "sample.txt",
+                                         package = "orderbook")
+                 ob <- orderbook(file = filename)
+                 ob <- read.orders(ob, 10000)
+                 display(ob)
+             })
+             ),
+      column(5, offset = 1,
+             renderPrint({
+                 if (input$amount3 <= 0) {
+                     cat("Enter number of shares")
+                 } else {
+                     orderType3 <- switch(input$typeBS3, 
+                                          "1" = "BID",
+                                          "2" = "ASK")
+                     filename <- system.file("extdata",
+                                             "sample.txt",
+                                             package = "orderbook")
+                     ob <- orderbook(file = filename)
+                     ob <- read.orders(ob, 10000)
+                     if (identical(orderType3, "BID") & input$limit3 >= 11.38) {
+                         ob <- market.order(ob, input$amount3, "BUY")
+                     } else {
+                         if (identical(orderType3, "ASK") & input$limit3 <= 11.36) {
+                             ob <- market.order(ob, input$amount3, "SELL")
+                         } else {
+                             ob <- add.order(ob, price = input$limit3, size = input$amount3, type = orderType3)
+                         }
+                     }
+                     display(ob)
+                 }
+             })
+             )
+  )
+)
+)
+                                        #}}}
+```
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div> 
+
+## Credits and Collaboration
+
+Click the following links to see the [code](https://github.com/FinancialMarkets/5MinuteFinance/blob/master/Equity/limit_order_book/limit_order_book.Rmd), [authors of this presentation](https://github.com/FinancialMarkets/5MinuteFinance/blame/master/Equity/limit_order_book/limit_order_book.Rmd), and [all the collaborators who have contributed to 5MinuteFinance](https://github.com/FinancialMarkets/5MinuteFinance/graphs/contributors).
+
+If you would like to make any additions or corrections to this presentation, visit our [GitHub repository page](https://github.com/FinancialMarkets/5MinuteFinance#how-to-contribute) to learn more about how to contribute.
+
+- The interactive content in this presentation has used the [orderbook R package](https://cran.r-project.org/web/packages/orderbook/index.html).  Thanks to the package authors for this great tool.
+
+<div class="MIfooter"><img src="mi.png" style="height:50px;"></div> 
+
+<!-- maybe include later here or in higher level presentation -->
+<!-- ## Limit Orders as Options -->
+
+<!-- Limit buy/sell orders in the book can also be thought of as providing the *option* to sell/buy the security at the limit price.   -->
+
+<!-- <div class="MIfooter"><img src="mi.png" style="height:50px;"></div>  -->
+
+
